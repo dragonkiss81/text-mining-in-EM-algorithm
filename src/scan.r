@@ -25,7 +25,7 @@ txt <- c("Train/alt.atheism",
          )
 
 ### generate term freq. in each topic
-tdm <- list()
+term_vec <- list()
 for(i in 1: length(txt)){
   my.corpus <- Corpus(DirSource(txt[i]), readerControl = list(language = "lat"))
   my.corpus <- tm_map(my.corpus, function(x) gsub("[^[:alnum:]]", " ", x))
@@ -41,13 +41,13 @@ for(i in 1: length(txt)){
   
   df <- data.frame(as.list(apply(TermDocumentMatrix(my.corpus), 1, sum)))
   df
-  tdm[[i]] <- df
+  term_vec[[i]] <- df
 }
 
 ### All term for EM analysis
-all_term <- colnames(tdm[[1]])
+all_term <- colnames(term_vec[[1]])
 for(j in 2:length(txt)){
-  all_term <- union(all_term, colnames(tdm[[j]]))
+  all_term <- union(all_term, colnames(term_vec[[j]]))
 }
 
 ### corpus vector in each topic to all term vector
@@ -64,8 +64,11 @@ ShortVectoLong <- function(long_term, short_vec){
 }
 
 ### generate document term matrix
-data.frame(matrix(NA, nrow = 2, ncol = 3))
-ShortVectoLong(all_term, tdm[[7]])
+dtm <- as.data.frame(matrix(NA, nrow = length(txt), ncol = length(all_term)))
+for(k in 1:length(txt)){
+  dtm[k,] <- ShortVectoLong(all_term, term_vec[[k]])
+}
+View(dtm)
 
 
 
