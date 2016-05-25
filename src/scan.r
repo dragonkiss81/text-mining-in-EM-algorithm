@@ -63,13 +63,30 @@ ShortVectoLong <- function(long_term, short_vec){
   long_vec
 }
 
-### generate document term matrix
-dtm <- as.data.frame(matrix(NA, nrow = length(txt), ncol = length(all_term)))
+### generate term document matrix
+tdm <- as.data.frame(matrix(NA, nrow = length(all_term), ncol = length(txt)))
 for(k in 1:length(txt)){
-  dtm[k,] <- ShortVectoLong(all_term, term_vec[[k]])
+  tdm[,k] <- ShortVectoLong(all_term, term_vec[[k]])
 }
-View(dtm)
+View(tdm)
 
+### example in textbook
+prob_LM1 = c(0.5, 0.3, 0.1, 0.1) 
+prob_LM2 = c(0.2, 0.1, 0.5, 0.3) 
+df = data.frame(prob_LM1, prob_LM2)
+word_freq = c(4, 2, 4, 2)
+tau <- c(0.5, 0.5)
 
+for(i in 1:30){
+  z1 <- (tau[1]*df[,1]) / (tau[1]*df[,1] + tau[2]*df[,2])
+  z2 <- (tau[2]*df[,2]) / (tau[1]*df[,1] + tau[2]*df[,2])
+  tau[1] <- sum(word_freq * z1) / sum(word_freq)
+  tau[2] <- sum(word_freq * z2) / sum(word_freq)
+    
+  log_like <- sum(word_freq * log(tau[1]*df[,1] + tau[2]*df[,2]))
+  print(log_like)
+}
+### EM Algorithm
+tau <- rep( 1/length(txt) , length(txt))
 
 
