@@ -86,7 +86,27 @@ for(i in 1:30){
   log_like <- sum(word_freq * log(tau[1]*df[,1] + tau[2]*df[,2]))
   print(log_like)
 }
+
 ### EM Algorithm
-tau <- rep( 1/length(txt) , length(txt))
+
+for(p in 1:30){
+  TPWM <- as.data.frame(matrix(NA, nrow = length(word_freq), ncol = ncol(df)))
+  for(i in 1:nrow(df)){
+    for(j in 1:ncol(df)){ 
+      TPWM[i,j] <- tau[j]*df[i,j] / sum(tau*df[i,]) 
+    }
+  }
+  for(i in 1:length(tau)){
+    tau[i] <- sum(word_freq * TPWM[,i]) / sum(word_freq)
+  }
+  
+  log_like <- 0
+  for(i in 1:length(word_freq)){
+    log_like <- log_like + word_freq[i]*log(sum(tau*df[i,]))
+  }
+  print(log_like)
+}
+
+
 
 
