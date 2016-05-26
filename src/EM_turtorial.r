@@ -44,12 +44,9 @@ mu_2 <- 1
 ## as well as the latent variable parameters
 tau_1 <- 0.5
 tau_2 <- 0.5
-
 for( i in 1:1000 ) {
-  
   ## Given the observed data, as well as the distribution parameters,
   ## what are the latent variables?
-  
   T_1 <- tau_1 * dnorm( x, mu_1 )
   T_2 <- tau_2 * dnorm( x, mu_2 )
   
@@ -61,12 +58,37 @@ for( i in 1:1000 ) {
   
   ## Given the observed data, as well as the latent variables,
   ## what are the population parameters?
-  
   mu_1 <- sum( P_1 * x ) / sum(P_1)
   mu_2 <- sum( P_2 * x ) / sum(P_2)
   
   ## print the current estimates
-  
   print( c(mu_1, mu_2, mean(P_1)) )
-  
 }
+
+### EM example in textbook
+prob_LM1 = c(0.5, 0.3, 0.1, 0.1)
+prob_LM2 = c(0.2, 0.1, 0.5, 0.3)
+df = data.frame(prob_LM1, prob_LM2)
+word_freq = c(4, 2, 4, 2)
+tau <- c(0.5, 0.5)
+
+for(i in 1:30){
+  z1 <- (tau[1]*df[,1]) / (tau[1]*df[,1] + tau[2]*df[,2])
+  z2 <- (tau[2]*df[,2]) / (tau[1]*df[,1] + tau[2]*df[,2])
+  tau[1] <- sum(word_freq * z1) / sum(word_freq)
+  tau[2] <- sum(word_freq * z2) / sum(word_freq)
+  
+  log_like <- sum(word_freq * log(tau[1]*df[,1] + tau[2]*df[,2]))
+  print(log_like)
+}
+
+### mapply example
+set.seed(1)
+X <- matrix(runif(100), 10, 10)
+set.seed(2)
+Y <- matrix(runif(100), 10, 10)
+
+res.row <- mapply(function(x, y){cor(x, y)}, as.data.frame(t(X)), as.data.frame(t(Y)))
+res.row[1]
+
+
