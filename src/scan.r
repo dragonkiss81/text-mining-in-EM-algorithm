@@ -88,12 +88,17 @@ ans_list <- vector(mode="character",length=length(all_test))
 names(ans_list) <- 1:length(all_test)
 
 for(i in 1:length(all_test)){
+  
+  flag_time = Sys.time()
+  
   query_term <- GetTermVector(VectorSource(readLines(all_test[i])))
   ans_list[i] <- EM_Algorithm(word_freq = ShortVectoLong(all_term, query_term),
                               tau = rep(1/length(catego), length(catego)),
                               tdm = tdm
                              )
   print( paste(i, ans_list[i], collapse = " "))
+  
+  print(Sys.time() - flag_time)
 }
 
 
