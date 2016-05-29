@@ -13,6 +13,9 @@
 # If it's heads, we draw from a Normal distribution with mean 1, standard deviation 1. 
 # If it's tails, we draw from a Normal distribution with mean 7, standard deviation 1. 
 # We repeat this process 1000 times.
+#
+# http://rstudio-pubs-static.s3.amazonaws.com/1001_3177e85f5e4840be840c84452780db52.html
+#
 
 library("ggplot2")
 library("lattice")
