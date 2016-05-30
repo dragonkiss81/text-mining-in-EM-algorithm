@@ -1,6 +1,9 @@
 #include <Rcpp.h>
 using namespace Rcpp;
 
+// Enable C++11 via this plugin (Rcpp 0.10.3 or later)
+// [[Rcpp::plugins("cpp11")]]
+
 double inner_product(NumericVector a, NumericVector b){
   if( a.size() != b.size() ){
     puts( "Error a's size not equal to b's size" ) ;

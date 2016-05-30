@@ -112,18 +112,15 @@ for(i in 1:length(all_test)){
   #                             tau = rep(1/length(catego), length(catego)),
   #                             tdm = tdm
   #                            )
+  
   print(Sys.time() - flag_time)
   print( paste(i, ans_list[i], collapse = " "))
-  
 }
 
 ### ans
 setwd("~/Desktop/text-mining-in-EM-algorithm/")
 given_ans <- read.table("out/ans.test.txt")
 given_ans <- as.vector(t(given_ans[2]))
-
-
-
 
 sum(given_ans[1:1000] == paste0(lapply(ans_list[1:1000], function(x)substring(x,7,40)))) / 1000
 
