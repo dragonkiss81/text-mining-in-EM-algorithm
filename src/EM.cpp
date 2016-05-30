@@ -19,7 +19,7 @@ NumericVector EM_AlgorithmCpp(NumericVector word_freq, NumericVector tau, Numeri
   NumericMatrix TPWM(tdm.nrow(), tdm.ncol());
   NumericVector denom(tdm.nrow());
   
-  for(int i=0; i<16; i++){
+  for(int i=0; i<8; i++){
     for(int j=0; j<tdm.nrow(); j++){
       double inner = inner_product(tau, tdm(j,_));
       denom(j) = (inner==0)? 1:inner;

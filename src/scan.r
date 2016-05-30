@@ -3,15 +3,15 @@ library(tm)
 
 GetTermVector <- function(file_dir){
   my.corpus <- Corpus(file_dir, readerControl = list(language = "lat"))
-  my.corpus <- tm_map(my.corpus, function(x) gsub("[^[:alnum:]]", " ", x))
-  my.corpus <- tm_map(my.corpus, stripWhitespace)
-  my.corpus <- tm_map(my.corpus, removePunctuation)
-  my.corpus <- tm_map(my.corpus, removeNumbers)
-  my.corpus <- tm_map(my.corpus, tolower)
-  # for some version need transformer : tm_map(my.corpus, content_transformer(tolower))
-  my.corpus <- tm_map(my.corpus, stemDocument, language = "english")  
-  my.corpus <- tm_map(my.corpus, removeWords, stopwords("english"))
-  my.corpus <- tm_map(my.corpus, PlainTextDocument)
+  # my.corpus <- tm_map(my.corpus, function(x) gsub("[^[:alnum:]]", " ", x))
+  # my.corpus <- tm_map(my.corpus, stripWhitespace)
+  # my.corpus <- tm_map(my.corpus, removePunctuation)
+  # my.corpus <- tm_map(my.corpus, removeNumbers)
+  # my.corpus <- tm_map(my.corpus, tolower)
+  # # for some version need transformer : tm_map(my.corpus, content_transformer(tolower))
+  # my.corpus <- tm_map(my.corpus, stemDocument, language = "english")
+  # my.corpus <- tm_map(my.corpus, removeWords, stopwords("english"))
+  # my.corpus <- tm_map(my.corpus, PlainTextDocument)
   # for some version need reset : Corpus(VectorSource(my.corpus))
   
   return(data.frame(as.list(apply(TermDocumentMatrix(my.corpus), 1, sum))))
@@ -75,7 +75,7 @@ for(i in 1:length(catego)){
 }
 
 ### kill low freq term
-low_freq_term <- which(apply(tdm,1,sum)<=1/sum(long_vec))
+low_freq_term <- which(apply(tdm,1,sum)<=2/sum(long_vec))
 all_term <- all_term[-low_freq_term]
 tdm <- tdm[-low_freq_term,]
 
@@ -125,7 +125,7 @@ given_ans <- as.vector(t(given_ans[2]))
 
 
 
-sum(given_ans == paste0(lapply(ans_list, function(x)substring(x,7,40)))) / 9419
+sum(given_ans[1:1000] == paste0(lapply(ans_list[1:1000], function(x)substring(x,7,40)))) / 1000
 
 ### benchmark
 install.packages("rbenchmark")
