@@ -18,10 +18,9 @@ GetTermVector <- function(file_dir){
 }
 
 ShortVectoLong <- function(long_term, short_vec){
-  if(length(short_vec)==0) return(rep(1,length=length(long_term)))
-  
   loc <- which(long_term %in% colnames(short_vec))
   loc_word <- long_term[loc]
+  if(length(loc)==0) return(rep(1,length=length(long_term)))
   
   long_vec <- vector(mode="integer",length=length(long_term))
   for(i in 1:length(loc)){
@@ -69,11 +68,18 @@ for(i in 2:length(catego)){
 }
 
 ### generate term document matrix
-tdm <- as.data.frame(matrix(NA, nrow = length(all_term), ncol = length(catego)))
+tdm <- matrix(NA, nrow = length(all_term), ncol = length(catego))
 for(i in 1:length(catego)){
   long_vec <- ShortVectoLong(all_term, term_vec[[i]])
   tdm[,i] <- long_vec / sum(long_vec)
 }
+
+### kill low freq term
+low_freq_term <- which(apply(tdm,1,sum)<=1/sum(long_vec))
+all_term <- all_term[-low_freq_term]
+tdm <- tdm[-low_freq_term,]
+
+
 # View(tdm)
 
 ### handle query document 
@@ -89,20 +95,49 @@ names(ans_list) <- 1:length(all_test)
 
 for(i in 1:length(all_test)){
   flag_time = Sys.time()
+
+  query_term <- GetTermVector(VectorSource(readLines(all_test[i])))
+  print(Sys.time() - flag_time)
   
-  query_term <- GetTermVector(VectorSource(readLines(all_test[1])))
+  flag_time = Sys.time()
+  final_tau <- EM_AlgorithmCpp(word_freq = ShortVectoLong(all_term, query_term),
+                                 tau = rep(1/length(catego), length(catego)),
+                                 tdm = tdm
+                                )
+  print(Sys.time() - flag_time)
   
-  ans_list[i] <- EM_AlgorithmCpp(word_freq = ShortVectoLong(all_term, query_term),
-                              tau = rep(1/length(catego), length(catego)),
-                              tdm = tdm
-  )
+  flag_time = Sys.time()
+  ans_list[i] <- catego[ which(final_tau == max(final_tau)) ]
   # ans_list[i] <- EM_Algorithm(word_freq = ShortVectoLong(all_term, query_term),
   #                             tau = rep(1/length(catego), length(catego)),
   #                             tdm = tdm
   #                            )
-  
-  print( paste(i, ans_list[i], collapse = " "))
   print(Sys.time() - flag_time)
+  print( paste(i, ans_list[i], collapse = " "))
+  
 }
+
+### ans
+setwd("~/Desktop/text-mining-in-EM-algorithm/")
+given_ans <- read.table("out/ans.test.txt")
+given_ans <- as.vector(t(given_ans[2]))
+
+
+
+
+sum(given_ans == paste0(lapply(ans_list, function(x)substring(x,7,40)))) / 9419
+
+### benchmark
+install.packages("rbenchmark")
+library("rbenchmark")
+benchmark(meanC(x),mean(x),
+          columns=c("test", "replications",
+                    "elapsed", "relative"),
+          order="relative", replications=10000)
+
+# R Compiler 套件：加速 R 程式碼的執行速度
+# http://blogger.gtwang.org/2011/08/r-compiler-r-r-compiler-package-speed.html
+# https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-quickref.pdf
+# http://www.kamalnigam.com/papers/emcat-mlj99.pdf
 
 

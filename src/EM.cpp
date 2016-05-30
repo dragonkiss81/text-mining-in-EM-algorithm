@@ -19,30 +19,23 @@ NumericVector EM_AlgorithmCpp(NumericVector word_freq, NumericVector tau, Numeri
   NumericMatrix TPWM(tdm.nrow(), tdm.ncol());
   NumericVector denom(tdm.nrow());
   
-  // for(int i=0; i<8; i++){
-  //   
-  //   for(int j=0; j<tdm.nrow(); j++){
-  //     denom = inner_product(tau, tdm(j,_));
-  //   }
-  //   
-  //   for(int j=0; j<tdm.ncol(); j++){
-  //     for(int k=0; k<tdm.nrow(); k++){
-  //       TPWM(k,j) = tau(j)*tdm(k,j) / denom(k);
-  //     }
-  //   }
-  //   
-  //   int sum_word_freq = sum(word_freq);
-  //   for(int j=0; j<tdm.ncol(); j++){
-  //     tau(j) = inner_product(word_freq, TPWM(_,j)) / sum_word_freq;
-  //     
-  //   }
-  //   
-  // }
-  
+  for(int i=0; i<16; i++){
+    for(int j=0; j<tdm.nrow(); j++){
+      double inner = inner_product(tau, tdm(j,_));
+      denom(j) = (inner==0)? 1:inner;
+    }
+
+    for(int j=0; j<tdm.ncol(); j++){
+      for(int k=0; k<tdm.nrow(); k++){
+        TPWM(k,j) = tau(j)*tdm(k,j) / denom(k);
+      }
+    }
+    
+    int sum_word_freq = sum(word_freq);
+    for(int j=0; j<tdm.ncol(); j++){
+      tau(j) = (sum_word_freq==0)? 1:inner_product(word_freq, TPWM(_,j)) / sum_word_freq;
+    }
+  }
   return tau;
 }
-
-// R Compiler 套件：加速 R 程式碼的執行速度
-// http://blogger.gtwang.org/2011/08/r-compiler-r-r-compiler-package-speed.html
-// https://cran.r-project.org/web/packages/Rcpp/vignettes/Rcpp-quickref.pdf
 
