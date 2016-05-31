@@ -3,28 +3,28 @@ library(tm)
 
 GetTermVector <- function(file_dir){
   my.corpus <- Corpus(file_dir, readerControl = list(language = "lat"))
-  # my.corpus <- tm_map(my.corpus, function(x) gsub("[^[:alnum:]]", " ", x))
-  # my.corpus <- tm_map(my.corpus, stripWhitespace)
-  # my.corpus <- tm_map(my.corpus, removePunctuation)
-  # my.corpus <- tm_map(my.corpus, removeNumbers)
-  # my.corpus <- tm_map(my.corpus, tolower)
-  # # for some version need transformer : tm_map(my.corpus, content_transformer(tolower))
+  my.corpus <- tm_map(my.corpus, function(x) gsub("[^[:alnum:]]", " ", x))
+  my.corpus <- tm_map(my.corpus, stripWhitespace)
+  my.corpus <- tm_map(my.corpus, removePunctuation)
+  my.corpus <- tm_map(my.corpus, removeNumbers)
+  my.corpus <- tm_map(my.corpus, tolower)
+  # # # for some version need transformer : tm_map(my.corpus, content_transformer(tolower))
   # my.corpus <- tm_map(my.corpus, stemDocument, language = "english")
-  # my.corpus <- tm_map(my.corpus, removeWords, stopwords("english"))
-  # my.corpus <- tm_map(my.corpus, PlainTextDocument)
-  # for some version need reset : Corpus(VectorSource(my.corpus))
+  my.corpus <- tm_map(my.corpus, removeWords, stopwords("english"))
+  my.corpus <- tm_map(my.corpus, PlainTextDocument)
+  # # for some version need reset : Corpus(VectorSource(my.corpus))
   
-  return(data.frame(as.list(apply(TermDocumentMatrix(my.corpus), 1, sum))))
+  return(apply(TermDocumentMatrix(my.corpus), 1, sum))
 }
 
 ShortVectoLong <- function(long_term, short_vec){
-  loc <- which(long_term %in% colnames(short_vec))
+  loc <- which(long_term %in% names(short_vec))
   loc_word <- long_term[loc]
   if(length(loc)==0) return(rep(1,length=length(long_term)))
   
   long_vec <- vector(mode="integer",length=length(long_term))
   for(i in 1:length(loc)){
-    long_vec[loc[i]] <- as.numeric( short_vec[which(loc_word[i] == colnames(short_vec))] ) 
+    long_vec[loc[i]] <- as.numeric( short_vec[which(loc_word[i] == names(short_vec))] ) 
   }
   
   return(long_vec)
@@ -55,16 +55,21 @@ EM_Algorithm <- function(word_freq, tau, tdm){
 setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 catego <- list.dirs('Train', recursive=FALSE)
 
-### generate term freq. in each topic
+### generate term freq. in each topic and All term set 
+setwd("~/Desktop/text-mining-in-EM-algorithm/test")
+catego <- list.dirs('Train', recursive=FALSE)
+used_label_count <- 20
 term_vec <- list()
-for(i in 1: length(catego)){
-  term_vec[[i]] <- GetTermVector(DirSource(catego[i]))
-}
+all_term <- c()
 
-### All term for EM analysis
-all_term <- colnames(term_vec[[1]])
-for(i in 2:length(catego)){
-  all_term <- union(all_term, colnames(term_vec[[i]]))
+for(i in 1: length(catego)){
+  file <- DirSource(catego[i])
+  if(used_label_count!=-1){
+    file$filelist <- file$filelist[1:used_label_count]
+    file$length <- used_label_count
+  }
+  term_vec[[i]] <- GetTermVector(file)
+  all_term <- union(all_term, names(term_vec[[i]]))
 }
 
 ### generate term document matrix
@@ -90,6 +95,8 @@ all_test <- paste0(rep('Test/',length(all_test)),
 all_test <- all_test
 
 ### EM Algorithm
+Rcpp::sourceCpp('../src/EM.cpp')
+Rcpp::sourceCpp('../src/tm.cpp')
 ans_list <- vector(mode="character",length=length(all_test))
 names(ans_list) <- 1:length(all_test)
 
@@ -119,19 +126,18 @@ for(i in 1:length(all_test)){
 }
 
 ### ans
-setwd("~/Desktop/text-mining-in-EM-algorithm/")
-given_ans <- read.table("out/ans.test.txt")
+given_ans <- read.table("ans.test.txt")
 given_ans <- as.vector(t(given_ans[2]))
 
-sum(given_ans[1:207] == paste0(lapply(ans_list[1:207], function(x)substring(x,7,40)))) / 207
+sum(given_ans == paste0(lapply(ans_list, function(x)substring(x,7,40)))) / 9419
 
 ### benchmark
-install.packages("rbenchmark")
-library("rbenchmark")
-benchmark(meanC(x),mean(x),
-          columns=c("test", "replications",
-                    "elapsed", "relative"),
-          order="relative", replications=10000)
+# install.packages("rbenchmark")
+# library("rbenchmark")
+# benchmark(meanC(x),mean(x),
+#           columns=c("test", "replications",
+#                     "elapsed", "relative"),
+#           order="relative", replications=10000)
 
 # R Compiler 套件：加速 R 程式碼的執行速度
 # http://blogger.gtwang.org/2011/08/r-compiler-r-r-compiler-package-speed.html
