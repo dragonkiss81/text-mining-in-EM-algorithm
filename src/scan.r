@@ -58,7 +58,7 @@ catego <- list.dirs('Train', recursive=FALSE)
 ### generate term freq. in each topic and All term set 
 setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 catego <- list.dirs('Train', recursive=FALSE)
-used_label_count <- 20
+used_label_count <- 1
 term_vec <- list()
 all_term <- c()
 

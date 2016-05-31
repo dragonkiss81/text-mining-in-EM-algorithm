@@ -40,7 +40,7 @@ all_time = Sys.time()
 ### generate term freq. in each topic and All term set 
 setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 catego <- list.dirs('Train', recursive=FALSE)
-used_label_count <- 20
+used_label_count <- 25
 term_vec <- list()
 all_term <- c()
 
@@ -57,7 +57,7 @@ for(i in 1: length(catego)){
 ### generate term freq. for unlabeled
 Rcpp::sourceCpp('~/Desktop/text-mining-in-EM-algorithm/src/tm.cpp')
 file_unlabel <- DirSource("Unlabel")
-used_unlabel_count <- 3000
+used_unlabel_count <- 4000
 file_unlabel$filelist <- file_unlabel$filelist[1:used_unlabel_count]
 file_unlabel$length <- used_unlabel_count
 
@@ -87,16 +87,16 @@ for(i in 1:length(file_unlabel)){
 
 
 ### kill low freq term
-low_freq_term <- which( (apply(tdm,1,sum)+apply(tdm_unlabel,1,sum)) <=6)
-all_term <- all_term[-low_freq_term]
-tdm <- tdm[-low_freq_term,]
-tdm_unlabel <- tdm_unlabel[-low_freq_term,]
+# low_freq_term <- which( (apply(tdm,1,sum)+apply(tdm_unlabel,1,sum)) <=5)
+# all_term <- all_term[-low_freq_term]
+# tdm <- tdm[-low_freq_term,]
+# tdm_unlabel <- tdm_unlabel[-low_freq_term,]
 
 
 ### calculate prob of word in a topic
 all_wordcount_in_a_topic <- apply(tdm,2,sum)
-V_len <- length(all_term)
-word_in_a_class_prob <- log2(t(apply(tdm,1,function(x) (1+x) / (V_len+all_wordcount_in_a_topic))))
+# V_len <- length(all_term)
+word_in_a_class_prob <- log2(t(apply(tdm,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
   # apply : for one word in all each topic int one thread(row)
 
 topic_doc_count <- c()
@@ -109,13 +109,13 @@ for(i in 1:length(catego)){
   topic_doc_count <- c(topic_doc_count, length(file))
 }
 D_len <- sum(topic_doc_count)
-C_len <- length(catego)
-class_prior_prob <- log2( (1+topic_doc_count) / (C_len+D_len) )
+# C_len <- length(catego)
+class_prior_prob <- log2( (0.0001 + topic_doc_count) / (D_len) )
 
 
 ### EM algorithm for unlabeled data
-
-for(times in 1:10){
+# # 
+for(times in 1:6){
 
   ans_list_unlabel <- vector(mode="character",length=length(file_unlabel))
   for(i in 1:length(file_unlabel)){
@@ -127,32 +127,31 @@ for(times in 1:10){
   }
 
   ### generate term document matrix
-  tdm_after <- matrix(0, nrow = length(all_term), ncol = length(catego))
+  tdm_after <- tdm
   topic_doc_count_after <- vector(mode = "numeric", length = length(catego))
-  
+
   for(i in 1:length(file_unlabel)){
     catego_unlabel <- which(catego == ans_list_unlabel[i])
     topic_doc_count_after[catego_unlabel] = topic_doc_count_after[catego_unlabel] + 1
-    tdm_after[,catego_unlabel] <- tdm[,catego_unlabel] + tdm_unlabel[,i]
+    tdm_after[,catego_unlabel] <- tdm_after[,catego_unlabel] + tdm_unlabel[,i]
   }
 
   all_wordcount_in_a_topic <- apply(tdm_after,2,sum)
-  V_len <- length(all_term)
-  word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (1+x) / (V_len+all_wordcount_in_a_topic))))
-  
+  # V_len <- length(all_term)
+  # word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.1+x) / (V_len+all_wordcount_in_a_topic))))
+  word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
+
+
   topic_doc_count_after <- topic_doc_count_after + topic_doc_count
   D_len <- sum(topic_doc_count_after)
-  C_len <- length(catego)
-  class_prior_prob <- log2( (1+topic_doc_count_after) / (C_len+D_len) )
+  # C_len <- length(catego)
+  # class_prior_prob <- log2( (1+topic_doc_count_after) / (C_len+D_len) )
+  class_prior_prob <- log2( (0.0001 + topic_doc_count_after) / (D_len))
 
 }
 
 
-
-
-
-
-
+# labeled size = 20		0.53891071239			0.680114661854	(#iter = 7)
 
 ### handle query document 
 all_test <- DirSource('Test')
