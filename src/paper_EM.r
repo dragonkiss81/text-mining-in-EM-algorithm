@@ -21,9 +21,7 @@ ShortVectoLong <- function(long_term, short_vec){
   loc <- which(long_term %in% names(short_vec))
   loc_word <- long_term[loc]
   
-  if(length(loc)==0){ 
-    return(rep(1,length=length(long_term)))
-  }
+  if(length(loc)==0){ return(rep(1,length=length(long_term))) }
   
   long_vec <- vector(mode="integer",length=length(long_term))
   for(i in 1:length(loc)){
@@ -33,14 +31,18 @@ ShortVectoLong <- function(long_term, short_vec){
   return(long_vec)
 }
 
-##### main #####
+Rcpp::sourceCpp('~/Desktop/text-mining-in-EM-algorithm/src/tm.cpp')
 
+
+##### main #####
+setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 all_time = Sys.time()
 
-### generate term freq. in each topic and All term set 
-setwd("~/Desktop/text-mining-in-EM-algorithm/test")
+
+### generate term freq. in each topic
 catego <- list.dirs('Train', recursive=FALSE)
-used_label_count <- 25
+used_label_count <- -1
+
 term_vec <- list()
 all_term <- c()
 
@@ -54,12 +56,15 @@ for(i in 1: length(catego)){
   all_term <- union(all_term, names(term_vec[[i]]))
 }
 
+
 ### generate term freq. for unlabeled
-Rcpp::sourceCpp('~/Desktop/text-mining-in-EM-algorithm/src/tm.cpp')
 file_unlabel <- DirSource("Unlabel")
-used_unlabel_count <- 4000
-file_unlabel$filelist <- file_unlabel$filelist[1:used_unlabel_count]
-file_unlabel$length <- used_unlabel_count
+used_unlabel_count <- -1
+
+if(used_unlabel_count!=-1){
+  file_unlabel$filelist <- file_unlabel$filelist[1:used_unlabel_count]
+  file_unlabel$length <- used_unlabel_count
+}
 
 term_vec_unlabel <- list()
 all_term_unlabel <- c()
@@ -69,35 +74,40 @@ for(i in 1:length(file_unlabel)){
   all_term_unlabel <- union(all_term_unlabel, names(term_vec_unlabel[[i]]))
 }
 
+
+### generate all term set 
 all_term <- union(all_term, all_term_unlabel)
 
 
-### generate term document matrix
+### generate term document matrix and all term freq
+term_freq <- vector(mode = "numeric", length = length(all_term))
+
 tdm <- matrix(NA, nrow = length(all_term), ncol = length(catego))
 for(i in 1:length(catego)){
   long_vec <- ShortVectoLong(all_term, term_vec[[i]])
   tdm[,i] <- long_vec
+  term_freq <- term_freq + long_vec
 }
+
 tdm_unlabel <- matrix(NA, nrow = length(all_term), ncol = length(file_unlabel))
 for(i in 1:length(file_unlabel)){
   long_vec <- ShortVectoLong(all_term, term_vec_unlabel[[i]])
   tdm_unlabel[,i] <- long_vec
+  term_freq <- term_freq + long_vec
 }
 
 
-
 ### kill low freq term
-# low_freq_term <- which( (apply(tdm,1,sum)+apply(tdm_unlabel,1,sum)) <=5)
-# all_term <- all_term[-low_freq_term]
-# tdm <- tdm[-low_freq_term,]
-# tdm_unlabel <- tdm_unlabel[-low_freq_term,]
+low_freq_term <- which(term_freq<=(sort(term_freq)[1])+1)
+all_term <- all_term[-low_freq_term]
+tdm <- tdm[-low_freq_term,]
+tdm_unlabel <- tdm_unlabel[-low_freq_term,]
 
 
 ### calculate prob of word in a topic
 all_wordcount_in_a_topic <- apply(tdm,2,sum)
-# V_len <- length(all_term)
 word_in_a_class_prob <- log2(t(apply(tdm,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
-  # apply : for one word in all each topic int one thread(row)
+  # note : apply - for one word in all each topic int one thread(row)
 
 topic_doc_count <- c()
 for(i in 1:length(catego)){
@@ -109,18 +119,23 @@ for(i in 1:length(catego)){
   topic_doc_count <- c(topic_doc_count, length(file))
 }
 D_len <- sum(topic_doc_count)
-# C_len <- length(catego)
 class_prior_prob <- log2( (0.0001 + topic_doc_count) / (D_len) )
 
+# backup for smoothing
+#  - V_len <- length(all_term)
+#  - C_len <- length(catego)
+#  - word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.1+x) / (V_len+all_wordcount_in_a_topic))))
+#  - class_prior_prob <- log2( (1+topic_doc_count_after) / (C_len+D_len) )
 
-### EM algorithm for unlabeled data
-# # 
+
+## EM algorithm for unlabeled data
 for(times in 1:6){
 
   ans_list_unlabel <- vector(mode="character",length=length(file_unlabel))
   for(i in 1:length(file_unlabel)){
     query_term_long <- tdm_unlabel[,i]
-    log_for_product <- apply(word_in_a_class_prob, 2, function(x) sum(query_term_long * x)) + class_prior_prob
+    log_for_product <- apply(word_in_a_class_prob, 2, 
+                             function(x) sum(query_term_long * x)) + class_prior_prob
     ans_list_unlabel[i] <- catego[ which(log_for_product == max(log_for_product)) ]
 
     print( paste(i, ans_list_unlabel[i], collapse = " "))
@@ -128,26 +143,19 @@ for(times in 1:6){
 
   ### generate term document matrix
   tdm_after <- tdm
-  topic_doc_count_after <- vector(mode = "numeric", length = length(catego))
+  topic_doc_count_after <- topic_doc_count
 
   for(i in 1:length(file_unlabel)){
     catego_unlabel <- which(catego == ans_list_unlabel[i])
-    topic_doc_count_after[catego_unlabel] = topic_doc_count_after[catego_unlabel] + 1
     tdm_after[,catego_unlabel] <- tdm_after[,catego_unlabel] + tdm_unlabel[,i]
+    topic_doc_count_after[catego_unlabel] <- topic_doc_count_after[catego_unlabel] + 1
   }
 
   all_wordcount_in_a_topic <- apply(tdm_after,2,sum)
-  # V_len <- length(all_term)
-  # word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.1+x) / (V_len+all_wordcount_in_a_topic))))
   word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
 
-
-  topic_doc_count_after <- topic_doc_count_after + topic_doc_count
   D_len <- sum(topic_doc_count_after)
-  # C_len <- length(catego)
-  # class_prior_prob <- log2( (1+topic_doc_count_after) / (C_len+D_len) )
   class_prior_prob <- log2( (0.0001 + topic_doc_count_after) / (D_len))
-
 }
 
 
