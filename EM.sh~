@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 
-NUM=50
+NUM=60
 
 if [ $# -eq 0 ]
 then
@@ -41,10 +41,10 @@ if [ $ECHO = "true" ]
 then
 	if [ "$SIZE" -lt "$NUM" ];
 	then
-		echo "type I EM\n"		
+		echo "type I EM"		
 		Rscript --vanilla src/paper_EM.r $DATA_DIR $OUT $SIZE
 	else
-		echo "type II EM\n"
+		echo "type II EM"
 		Rscript --vanilla src/slide_EM.r $DATA_DIR $OUT $SIZE
 	fi
 fi

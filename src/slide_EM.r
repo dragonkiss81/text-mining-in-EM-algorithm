@@ -34,18 +34,18 @@ ShortVectoLong <- function(long_term, short_vec){
 #   TPWM <- as.data.frame(matrix(NA, nrow = nrow(tdm), ncol = ncol(tdm)))
 #   for(i in 1:8){
 #     denom <- apply(tdm,1, function(x)sum(tau*x))
-#     for(j in 1:ncol(tdm)){ 
+#     for(j in 1:ncol(tdm)){
 #       TPWM[,j] <- tau[j]*tdm[,j] / denom
 #     }
-#     
+# 
 #     tau <- apply(TPWM, 2, function(x)sum(word_freq*x) / sum(word_freq))
-#     
-#     # log_like <- sum(mapply( function(x,y) y*log(sum(tau*x)), 
-#     #                         as.data.frame(t(tdm)), 
+# 
+#     # log_like <- sum(mapply( function(x,y) y*log(sum(tau*x)),
+#     #                         as.data.frame(t(tdm)),
 #     #                         as.list(word_freq)))
 #     # print(log_like)
 #   }
-#   
+# 
 #   catego[ which(tau == max(tau)) ]
 # }
 
@@ -61,8 +61,12 @@ if (length(args)==0) {
   used_label_count <- as.numeric(args[3])
 }
 
-setwd(args[1]) # setwd("~/Desktop/text-mining-in-EM-algorithm/test")
-out_name <- args[2]
+setwd(args[1]) 
+out_name <- args[2] 
+
+# setwd("~/Desktop/text-mining-in-EM-algorithm/test")
+# used_label_count <- -1
+# out_name <- "out.txt"
 
 Rcpp::sourceCpp('../src/EM.cpp')
 Rcpp::sourceCpp('../src/tm.cpp')
@@ -78,8 +82,10 @@ all_term <- c()
 for(i in 1: length(catego)){
   file <- DirSource(catego[i])
   if(used_label_count!=-1){
-    file$filelist <- file$filelist[1:used_label_count]
-    file$length <- used_label_count
+    if(file$length > used_label_count){
+      file$filelist <- file$filelist[1:used_label_count]
+      file$length <- used_label_count
+    }
   }
   term_vec[[i]] <- GetTermVector(file)
   all_term <- union(all_term, names(term_vec[[i]]))
@@ -149,10 +155,15 @@ cat("time : ", Sys.time() - all_time, "\n")
 ### benchmark
 # install.packages("rbenchmark")
 # library("rbenchmark")
-# benchmark(meanC(x),mean(x),
+# benchmark(EM_Algorithm(word_freq = ShortVectoLong(all_term, query_term),
+#                        tau = rep(1/length(catego), length(catego)),
+#                        tdm = tdm),
+#           EM_AlgorithmCpp(word_freq = ShortVectoLong(all_term, query_term),
+#                           tau = rep(1/length(catego), length(catego)),
+#                           tdm = tdm),
 #           columns=c("test", "replications",
 #                     "elapsed", "relative"),
-#           order="relative", replications=10000)
+#           order="relative", replications=100)
 
 # R Compiler 套件：加速 R 程式碼的執行速度
 # http://blogger.gtwang.org/2011/08/r-compiler-r-r-compiler-package-speed.html

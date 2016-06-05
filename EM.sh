@@ -1,6 +1,6 @@
 #!/usr/bin/sh
 
-NUM=50
+NUM=60
 
 if [ $# -eq 0 ]
 then

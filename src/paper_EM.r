@@ -65,8 +65,10 @@ all_term <- c()
 for(i in 1: length(catego)){
   file <- DirSource(catego[i])
   if(used_label_count!=-1){
-    file$filelist <- file$filelist[1:used_label_count]
-    file$length <- used_label_count
+    if(file$length > used_label_count){
+      file$filelist <- file$filelist[1:used_label_count]
+      file$length <- used_label_count
+    }
   }
   term_vec[[i]] <- GetTermVector(file)
   all_term <- union(all_term, names(term_vec[[i]]))
@@ -129,8 +131,10 @@ topic_doc_count <- c()
 for(i in 1:length(catego)){
   file <- DirSource(catego[i])
   if(used_label_count!=-1){
-    file$filelist <- file$filelist[1:used_label_count]
-    file$length <- used_label_count
+    if(file$length > used_label_count){
+      file$filelist <- file$filelist[1:used_label_count]
+      file$length <- used_label_count
+    }
   }
   topic_doc_count <- c(topic_doc_count, length(file))
 }
