@@ -13,7 +13,7 @@ GetTermVector <- function(file_dir){
   my.corpus <- tm_map(my.corpus, removeWords, stopwords("english"))
   my.corpus <- tm_map(my.corpus, PlainTextDocument)
   # # for some version need reset : Corpus(VectorSource(my.corpus))
-  
+
   return(apply(TermDocumentMatrix(my.corpus), 1, sum))
 }
 
@@ -47,10 +47,6 @@ if (length(args)==0) {
 setwd(args[1]) # setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 out_name <- args[2]
 
-# setwd("~/Desktop/text-mining-in-EM-algorithm/test")
-#
-
-
 Rcpp::sourceCpp("../src/tm.cpp")
 
 all_time = Sys.time()
@@ -75,7 +71,7 @@ for(i in 1: length(catego)){
 
 ### generate term freq. for unlabeled
 file_unlabel <- DirSource("Unlabel")
-used_unlabel_count <- -1
+used_unlabel_count <- 1
 
 if(used_unlabel_count!=-1){
   file_unlabel$filelist <- file_unlabel$filelist[1:used_unlabel_count]
@@ -123,7 +119,7 @@ tdm_unlabel <- tdm_unlabel[-low_freq_term,]
 ### calculate prob of word in a topic
 all_wordcount_in_a_topic <- apply(tdm,2,sum)
 word_in_a_class_prob <- log2(t(apply(tdm,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
-# note : apply - for one word in all each topic int one thread(row)
+  # note : apply - for one word in all each topic int one thread(row)
 
 topic_doc_count <- c()
 for(i in 1:length(catego)){
@@ -145,34 +141,34 @@ class_prior_prob <- log2( (0.0001 + topic_doc_count) / (D_len) )
 
 
 ## EM algorithm for unlabeled data
-for(times in 1:6){
-
-  ans_list_unlabel <- vector(mode="character",length=length(file_unlabel))
-  for(i in 1:length(file_unlabel)){
-    query_term_long <- tdm_unlabel[,i]
-    log_for_product <- apply(word_in_a_class_prob, 2,
-                             function(x) sum(query_term_long * x)) + class_prior_prob
-    ans_list_unlabel[i] <- catego[ which(log_for_product == max(log_for_product)) ]
-
-    cat( paste(i, ans_list_unlabel[i], collapse = " "), "\n")
-  }
-
-  ### generate term document matrix
-  tdm_after <- tdm
-  topic_doc_count_after <- topic_doc_count
-
-  for(i in 1:length(file_unlabel)){
-    catego_unlabel <- which(catego == ans_list_unlabel[i])
-    tdm_after[,catego_unlabel] <- tdm_after[,catego_unlabel] + tdm_unlabel[,i]
-    topic_doc_count_after[catego_unlabel] <- topic_doc_count_after[catego_unlabel] + 1
-  }
-
-  all_wordcount_in_a_topic <- apply(tdm_after,2,sum)
-  word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
-
-  D_len <- sum(topic_doc_count_after)
-  class_prior_prob <- log2( (0.0001 + topic_doc_count_after) / (D_len))
-}
+# for(times in 1:6){
+# 
+#   ans_list_unlabel <- vector(mode="character",length=length(file_unlabel))
+#   for(i in 1:length(file_unlabel)){
+#     query_term_long <- tdm_unlabel[,i]
+#     log_for_product <- apply(word_in_a_class_prob, 2, 
+#                              function(x) sum(query_term_long * x)) + class_prior_prob
+#     ans_list_unlabel[i] <- catego[ which(log_for_product == max(log_for_product)) ]
+# 
+#     print( paste(i, ans_list_unlabel[i], collapse = " "))
+#   }
+# 
+#   ### generate term document matrix
+#   tdm_after <- tdm
+#   topic_doc_count_after <- topic_doc_count
+# 
+#   for(i in 1:length(file_unlabel)){
+#     catego_unlabel <- which(catego == ans_list_unlabel[i])
+#     tdm_after[,catego_unlabel] <- tdm_after[,catego_unlabel] + tdm_unlabel[,i]
+#     topic_doc_count_after[catego_unlabel] <- topic_doc_count_after[catego_unlabel] + 1
+#   }
+# 
+#   all_wordcount_in_a_topic <- apply(tdm_after,2,sum)
+#   word_in_a_class_prob <- log2(t(apply(tdm_after,1,function(x) (0.0001 + x) / (all_wordcount_in_a_topic))))
+# 
+#   D_len <- sum(topic_doc_count_after)
+#   class_prior_prob <- log2( (0.0001 + topic_doc_count_after) / (D_len))
+# }
 
 
 # labeled size = 20		0.53891071239			0.680114661854	(#iter = 7)
@@ -197,7 +193,7 @@ for(i in 1:length(all_test)){
   log_for_product <- apply(word_in_a_class_prob, 2, function(x) sum(query_term_long * x)) + class_prior_prob
   ans_list[i] <- catego[ which(log_for_product == max(log_for_product)) ]
   
-  cat( paste(i, ans_list[i], collapse = " "), "\n")
+  cat( paste(i, ans_list[i], collapse = " "), "\n" )
   
   ans.out <-cbind(i, ans_list[i])
   all_ranking_list <- rbind(all_ranking_list,ans.out)

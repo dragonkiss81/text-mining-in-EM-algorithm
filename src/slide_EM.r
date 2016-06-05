@@ -30,35 +30,48 @@ ShortVectoLong <- function(long_term, short_vec){
   return(long_vec)
 }
 
-EM_Algorithm <- function(word_freq, tau, tdm){
-  TPWM <- as.data.frame(matrix(NA, nrow = nrow(tdm), ncol = ncol(tdm)))
-  for(i in 1:8){
-    denom <- apply(tdm,1, function(x)sum(tau*x))
-    for(j in 1:ncol(tdm)){ 
-      TPWM[,j] <- tau[j]*tdm[,j] / denom
-    }
-    
-    tau <- apply(TPWM, 2, function(x)sum(word_freq*x) / sum(word_freq))
-    
-    # log_like <- sum(mapply( function(x,y) y*log(sum(tau*x)), 
-    #                         as.data.frame(t(tdm)), 
-    #                         as.list(word_freq)))
-    # print(log_like)
-  }
-  
-  catego[ which(tau == max(tau)) ]
-}
+# EM_Algorithm <- function(word_freq, tau, tdm){
+#   TPWM <- as.data.frame(matrix(NA, nrow = nrow(tdm), ncol = ncol(tdm)))
+#   for(i in 1:8){
+#     denom <- apply(tdm,1, function(x)sum(tau*x))
+#     for(j in 1:ncol(tdm)){ 
+#       TPWM[,j] <- tau[j]*tdm[,j] / denom
+#     }
+#     
+#     tau <- apply(TPWM, 2, function(x)sum(word_freq*x) / sum(word_freq))
+#     
+#     # log_like <- sum(mapply( function(x,y) y*log(sum(tau*x)), 
+#     #                         as.data.frame(t(tdm)), 
+#     #                         as.list(word_freq)))
+#     # print(log_like)
+#   }
+#   
+#   catego[ which(tau == max(tau)) ]
+# }
 
 ##### main #####
 
-### set all file path
-setwd("~/Desktop/text-mining-in-EM-algorithm/test")
-catego <- list.dirs('Train', recursive=FALSE)
+#!/usr/bin/env Rscript
+args = commandArgs(trailingOnly=TRUE)
+if (length(args)==0) {
+  stop("At least one argument must be supplied (input file)", call.=FALSE)
+}else if (length(args) < 3) {
+  used_label_count <- -1
+}else{
+  used_label_count <- as.numeric(args[3])
+}
+
+setwd(args[1]) # setwd("~/Desktop/text-mining-in-EM-algorithm/test")
+out_name <- args[2]
+
+Rcpp::sourceCpp('../src/EM.cpp')
+Rcpp::sourceCpp('../src/tm.cpp')
+
+all_time = Sys.time()
 
 ### generate term freq. in each topic and All term set 
-setwd("~/Desktop/text-mining-in-EM-algorithm/test")
 catego <- list.dirs('Train', recursive=FALSE)
-used_label_count <- 20
+
 term_vec <- list()
 all_term <- c()
 
@@ -72,6 +85,7 @@ for(i in 1: length(catego)){
   all_term <- union(all_term, names(term_vec[[i]]))
 }
 
+
 ### generate term document matrix
 tdm <- matrix(NA, nrow = length(all_term), ncol = length(catego))
 for(i in 1:length(catego)){
@@ -79,13 +93,12 @@ for(i in 1:length(catego)){
   tdm[,i] <- long_vec / sum(long_vec)
 }
 
+
 ### kill low freq term
 low_freq_term <- which(apply(tdm,1,sum)<=2/sum(long_vec))
 all_term <- all_term[-low_freq_term]
 tdm <- tdm[-low_freq_term,]
 
-
-# View(tdm)
 
 ### handle query document 
 all_test <- DirSource('Test')
@@ -94,42 +107,44 @@ all_test <- paste0(rep('Test/',length(all_test)),
                    as.character(sort(as.numeric(all_test))))
 all_test <- all_test
 
+
 ### EM Algorithm
-Rcpp::sourceCpp('../src/EM.cpp')
-Rcpp::sourceCpp('../src/tm.cpp')
 ans_list <- vector(mode="character",length=length(all_test))
-names(ans_list) <- 1:length(all_test)
+all_ranking_list <- data.frame() 
 
 for(i in 1:length(all_test)){
-  flag_time = Sys.time()
-
   # query_term <- GetTermVector(VectorSource(readLines(all_test[i])))
   query_term <- data.frame(as.list(GetTermVectorCpp(all_test[i])))
-  print(Sys.time() - flag_time)
   
-  flag_time = Sys.time()
   final_tau <- EM_AlgorithmCpp(word_freq = ShortVectoLong(all_term, query_term),
                                  tau = rep(1/length(catego), length(catego)),
                                  tdm = tdm
                                 )
-  print(Sys.time() - flag_time)
   
-  flag_time = Sys.time()
   ans_list[i] <- catego[ which(final_tau == max(final_tau)) ]
   # ans_list[i] <- EM_Algorithm(word_freq = ShortVectoLong(all_term, query_term),
   #                             tau = rep(1/length(catego), length(catego)),
   #                             tdm = tdm
   #                            )
   
-  print(Sys.time() - flag_time)
-  print( paste(i, ans_list[i], collapse = " "))
+  cat( paste(i, ans_list[i], collapse = " "), "\n")
+  
+  ans.out <-cbind(i, ans_list[i])
+  all_ranking_list <- rbind(all_ranking_list,ans.out)
 }
 
-### ans
+out_dir <- paste("../out/", out_name, sep="")
+write.table(all_ranking_list, file=out_dir, sep = " ",
+            row.names = FALSE, col.names = FALSE, quote = FALSE)
+
 given_ans <- read.table("ans.test.txt")
 given_ans <- as.vector(t(given_ans[2]))
 
-sum(given_ans == paste0(lapply(ans_list, function(x)substring(x,7,40)))) / 9419
+cat("precision : ", sum(given_ans == paste0(lapply(ans_list, function(x)substring(x,7,40)))) / 9419 , "\n")
+cat("time : ", Sys.time() - all_time, "\n")
+
+
+
 
 ### benchmark
 # install.packages("rbenchmark")
